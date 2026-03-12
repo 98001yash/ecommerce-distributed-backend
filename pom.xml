@@ -13,7 +13,7 @@
 
     <!-- CHILD MODULES -->
     <modules>
-
+     <module>auth-service</module>
     </modules>
 
     <!-- COMMON DEPENDENCY VERSIONS -->

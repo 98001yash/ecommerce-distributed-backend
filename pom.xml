@@ -13,7 +13,8 @@
 
     <!-- CHILD MODULES -->
     <modules>
-     <module>auth-service</module>
+        <module>auth-service</module>
+        <module>discovery-server</module>
     </modules>
 
     <!-- COMMON DEPENDENCY VERSIONS -->

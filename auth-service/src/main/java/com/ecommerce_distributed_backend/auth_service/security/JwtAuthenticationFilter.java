@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -13,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -34,33 +37,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = authHeader.substring(7);
-        String email = jwtService.extractEmail(token);
+        try {
 
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+            String token = authHeader.substring(7);
+            String email = jwtService.extractEmail(token);
 
-            var userDetails =
-                    userDetailsService.loadUserByUsername(email);
+            if (email != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (jwtService.validateToken(token, userDetails.getUsername())) {
+                var userDetails =
+                        userDetailsService.loadUserByUsername(email);
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                if (jwtService.validateToken(token, userDetails)) {
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-                SecurityContextHolder
-                        .getContext()
-                        .setAuthentication(authToken);
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
+
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authToken);
+                }
             }
+
+        } catch (Exception ex) {
+
+            log.error("JWT authentication failed: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

@@ -1,6 +1,5 @@
 package com.ecommerce_distributed_backend.auth_service.service.Impl;
 
-
 import com.ecommerce_distributed_backend.auth_service.dtos.request.LoginRequest;
 import com.ecommerce_distributed_backend.auth_service.dtos.request.LogoutRequest;
 import com.ecommerce_distributed_backend.auth_service.dtos.request.RefreshTokenRequest;
@@ -14,11 +13,15 @@ import com.ecommerce_distributed_backend.auth_service.exception.UserAlreadyExist
 import com.ecommerce_distributed_backend.auth_service.repository.UserRepository;
 import com.ecommerce_distributed_backend.auth_service.security.JwtService;
 import com.ecommerce_distributed_backend.auth_service.service.AuthService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,20 +34,18 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserDetailsService userDetailsService;
 
 
-
-    // Register new user
     @Override
     public AuthResponse register(RegisterRequest request) {
 
-        log.info("Register request received for email: {}",request.getEmail());
+        log.info("Register request received for email: {}", request.getEmail());
 
-        if(userRepository.existsByEmail(request.getEmail())){
-            log.warn("User already exists with email: {}",request.getEmail());;
-            throw new UserAlreadyExistsException("User already exists with email");
+        if (userRepository.existsByEmail(request.getEmail())) {
+            log.warn("User already exists with email: {}", request.getEmail());
+            throw new UserAlreadyExistsException("User already exists with this email");
         }
-
 
         User user = User.builder()
                 .email(request.getEmail())
@@ -54,10 +55,11 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
 
-        log.info("User successfully registered with id: {}",savedUser.getId());
+        log.info("User successfully registered with id: {}", savedUser.getId());
+        UserDetails userDetails =
+                userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        String accessToken = jwtService.generateToken(savedUser.getEmail());
-
+        String accessToken = jwtService.generateToken(userDetails);
         return AuthResponse.builder()
                 .userId(savedUser.getId())
                 .accessToken(accessToken)
@@ -69,8 +71,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
 
-        log.info("login attempt for email: {}",request.getEmail());
-        try{
+        log.info("Login attempt for email: {}", request.getEmail());
+
+        try {
+
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             request.getEmail(),
@@ -78,19 +82,23 @@ public class AuthServiceImpl implements AuthService {
                     )
             );
 
-        }catch(BadCredentialsException ex){
-            log.error("Invalid login credentials for email: {}",request.getEmail());
-            throw new InvalidCredentialsException("Invalid login credentials for email");
+        } catch (BadCredentialsException ex) {
+
+            log.error("Invalid login credentials for email: {}", request.getEmail());
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()-> {
-                    log.error("User not found with email: {}",request.getEmail());
-                    throw new InvalidCredentialsException("Invalid login credentials for email");
+                .orElseThrow(() -> {
+                    log.error("User not found with email: {}", request.getEmail());
+                    return new InvalidCredentialsException("Invalid email or password");
                 });
 
-        String accessToken = jwtService.generateToken(user.getEmail());
-        log.info("User login successful: {}",user.getEmail());
+        UserDetails userDetails =
+                userDetailsService.loadUserByUsername(user.getEmail());
+
+        String accessToken = jwtService.generateToken(userDetails);
+        log.info("User login successful: {}", user.getEmail());
 
         return AuthResponse.builder()
                 .userId(user.getId())
@@ -100,17 +108,25 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+
     @Override
     public TokenValidationResponse validateToken(String token) {
 
-        log.debug("Validate JWT token");
+        log.debug("Validating JWT token");
+
         try {
 
             String email = jwtService.extractEmail(token);
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new InvalidCredentialsException("User not found"));
+                    .orElseThrow(() -> {
+                        log.error("User not found during token validation");
+                        return new InvalidCredentialsException("User not found");
+                    });
 
-            boolean valid = jwtService.validateToken(token, email);
+            UserDetails userDetails =
+                    userDetailsService.loadUserByUsername(email);
+
+            boolean valid = jwtService.validateToken(token, userDetails);
 
             return TokenValidationResponse.builder()
                     .valid(valid)
@@ -126,20 +142,28 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+
     @Override
     public AuthResponse refreshToken(RefreshTokenRequest request) {
+
         log.info("Refresh token request received");
 
         try {
 
             String email = jwtService.extractEmail(request.getRefreshToken());
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() ->
-                            new InvalidCredentialsException("User not found"));
+                    .orElseThrow(() -> {
+                        log.error("User not found for refresh token");
+                        return new InvalidCredentialsException("User not found");
+                    });
 
-            String newAccessToken = jwtService.generateToken(user.getEmail());
+            UserDetails userDetails =
+                    userDetailsService.loadUserByUsername(user.getEmail());
+
+            String newAccessToken = jwtService.generateToken(userDetails);
 
             log.info("Access token refreshed for user: {}", email);
+
             return AuthResponse.builder()
                     .userId(user.getId())
                     .accessToken(newAccessToken)
@@ -149,18 +173,19 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (Exception ex) {
 
-            log.error("Refresh token failed");
+            log.error("Refresh token failed: {}", ex.getMessage());
             throw new TokenExpiredException("Refresh token expired");
         }
     }
+
 
     @Override
     public void logout(LogoutRequest request) {
 
         log.info("Logout request received");
 
-        // TODO:  Future implementation:
-        // TODO: store token in Redis blacklist
+        // Future improvement
+        // Store token in Redis blacklist
 
         log.info("User successfully logged out");
     }

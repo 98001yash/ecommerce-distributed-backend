@@ -19,8 +19,8 @@ public class SecurityConfig {
                 .authorizeExchange(exchange ->
                         exchange
                                 .pathMatchers(
-                                        "/api/v1/auth/login",
-                                        "/api/v1/auth/register"
+                                        "/auth/login",
+                                        "/auth/register"
                                 ).permitAll()
                                 .anyExchange().authenticated()
                 );

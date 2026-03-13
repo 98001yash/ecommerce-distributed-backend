@@ -1,20 +1,25 @@
 package com.ecommerce_distributed_backend.api_gateway.filter;
 
+import com.ecommerce_distributed_backend.api_gateway.JwtService;
 import com.ecommerce_distributed_backend.api_gateway.util.RouterValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
+public class AuthenticationFilter
+        extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
     private final RouterValidator validator;
+    private final JwtService jwtService;
 
-    public AuthenticationFilter(RouterValidator validator) {
+    public AuthenticationFilter(RouterValidator validator, JwtService jwtService) {
         super(Config.class);
         this.validator = validator;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -22,29 +27,38 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
         return (exchange, chain) -> {
 
-            if (validator.isSecured.test(exchange.getRequest())) {
+            ServerHttpRequest request = exchange.getRequest();
 
-                if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            if (validator.isSecured.test(request)) {
+
+                if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                     throw new RuntimeException("Missing Authorization Header");
                 }
 
                 String authHeader =
-                        exchange.getRequest()
-                                .getHeaders()
-                                .getFirst(HttpHeaders.AUTHORIZATION);
+                        request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
 
-                    String token = authHeader.substring(7);
+                // Validate JWT
+                String email = jwtService.extractEmail(token);
+                String role = jwtService.extractRole(token);
 
-                    // Here you can validate token later
-                }
+                // Propagate user context
+                ServerHttpRequest modifiedRequest =
+                        request.mutate()
+                                .header("X-User-Email", email)
+                                .header("X-User-Role", role)
+                                .build();
+
+                exchange = exchange.mutate()
+                        .request(modifiedRequest)
+                        .build();
             }
 
             return chain.filter(exchange);
         };
     }
 
-    public static class Config {
-    }
+    public static class Config {}
 }

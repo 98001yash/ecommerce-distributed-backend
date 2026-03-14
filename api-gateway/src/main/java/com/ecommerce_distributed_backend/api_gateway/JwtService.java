@@ -2,12 +2,9 @@ package com.ecommerce_distributed_backend.api_gateway;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import java.security.Key;
 
 @Service
 public class JwtService {
@@ -15,20 +12,14 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secret;
 
-    private Key key;
+    public boolean validateToken(String token) {
 
-    @PostConstruct
-    public void init() {
-        key = Keys.hmacShaKeyFor(secret.getBytes());
-    }
-
-    public Claims extractAllClaims(String token) {
-
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            extractAllClaims(token);
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     public String extractEmail(String token) {
@@ -37,5 +28,18 @@ public class JwtService {
 
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
+    }
+
+    public String extractUserId(String token) {
+        return extractAllClaims(token).get("userId").toString();
+    }
+
+    private Claims extractAllClaims(String token) {
+
+        return Jwts.parserBuilder()
+                .setSigningKey(secret.getBytes())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

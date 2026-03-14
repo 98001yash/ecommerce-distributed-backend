@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails =
                 userDetailsService.loadUserByUsername(savedUser.getEmail());
 
-        String accessToken = jwtService.generateToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails, user.getId());
         return AuthResponse.builder()
                 .userId(savedUser.getId())
                 .accessToken(accessToken)
@@ -100,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails =
                 userDetailsService.loadUserByUsername(user.getEmail());
 
-        String accessToken = jwtService.generateToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails, user.getId());
         log.info("User login successful: {}", user.getEmail());
 
         return AuthResponse.builder()
@@ -163,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
             UserDetails userDetails =
                     userDetailsService.loadUserByUsername(user.getEmail());
 
-            String newAccessToken = jwtService.generateToken(userDetails);
+            String newAccessToken = jwtService.generateToken(userDetails, user.getId());
 
             log.info("Access token refreshed for user: {}", email);
 

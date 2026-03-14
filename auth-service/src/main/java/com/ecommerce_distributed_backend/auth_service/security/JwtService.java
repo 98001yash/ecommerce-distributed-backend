@@ -29,7 +29,7 @@ public class JwtService {
         key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, Long userId) {
 
         Map<String, Object> claims = new HashMap<>();
 
@@ -39,6 +39,7 @@ public class JwtService {
                 .getAuthority();
 
         claims.put("role", role);
+        claims.put("userId", userId);
 
         return createToken(claims, userDetails.getUsername());
     }

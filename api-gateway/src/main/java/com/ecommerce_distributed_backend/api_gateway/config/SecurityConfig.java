@@ -14,23 +14,17 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
 
-        http
+        return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange ->
                         exchange
-                                .pathMatchers(
-                                        "/auth/login",
-                                        "/auth/register"
-                                ).permitAll()
-                                .anyExchange().authenticated()
-                );
-
-        return http.build();
+                                .anyExchange().permitAll()
+                )
+                .build();
     }
 
     @Bean
     public WebClient.Builder webClientBuilder() {
         return WebClient.builder();
     }
-
 }

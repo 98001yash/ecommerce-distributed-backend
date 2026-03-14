@@ -32,6 +32,13 @@ spring:
           filters:
             - AuthenticationFilter
 
+        - id: product-service
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/products/**
+          filters:
+            - AuthenticationFilter
+
 
 
 eureka:

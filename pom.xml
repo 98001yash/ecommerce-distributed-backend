@@ -17,6 +17,7 @@
         <module>discovery-server</module>
         <module>api-gateway</module>
         <module>product-service</module>
+        <module>ecommerce-common-dtos</module>
     </modules>
 
     <!-- COMMON DEPENDENCY VERSIONS -->

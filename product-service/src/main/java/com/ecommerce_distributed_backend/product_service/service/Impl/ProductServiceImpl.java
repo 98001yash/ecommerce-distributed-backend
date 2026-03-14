@@ -12,6 +12,7 @@ import com.ecommerce_distributed_backend.product_service.kafka.ProductEventProdu
 import com.ecommerce_distributed_backend.product_service.repository.ProductRepository;
 import com.ecommerce_distributed_backend.product_service.service.ProductService;
 import com.redditApp.events.ProductCreatedEvent;
+import com.redditApp.events.ProductDeletedEvent;
 import com.redditApp.events.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -105,24 +106,75 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void deleteProduct(Long productId, Long sellerId) {
 
+        Long userId = UserContextHolder.getCurrentUserId();
+
+        log.info("Deleting productId={} by userId={}",productId, userId);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(()-> {
+                    log.error("Product not found for deletion id={}",productId);
+                    return new ProductNotFoundException("Product not found");
+                });
+
+        if (!product.getSellerId().equals(userId)) {
+            log.warn("Unauthorized delete attempt productId={} by userId={}", productId, userId);
+            throw new RuntimeException("You are not allowed to delete this product");
+        }
+
+        product.setStatus(ProductStatus.DELETED);
+        productRepository.save(product);
+
+        log.info("Product marked deleted id={}",productId);
+
+        ProductDeletedEvent event =
+                ProductDeletedEvent.builder()
+                        .productId(product.getId())
+                        .sellerId(product.getSellerId())
+                        .build();
+
+        productEventProducer.publishDeleted(event);
+        log.info("ProductDeletedEvent published for productId={}", productId);
     }
+
 
     @Override
     public ProductResponse getProductById(Long productId) {
-        return null;
+        log.info("Fetching product with id={}", productId);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> {
+                    log.error("Product not found id={}", productId);
+                    return new ProductNotFoundException("Product not found");
+                });
+
+        return mapToResponse(product);
     }
 
     @Override
     public List<ProductResponse> getAllProducts() {
-        return List.of();
+
+        log.info("Fetching all active products");
+
+        return productRepository.findByStatus(ProductStatus.ACTIVE)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     @Override
     public List<ProductResponse> getProductBySeller(Long sellerId) {
-        return List.of();
+
+        Long userId = UserContextHolder.getCurrentUserId();
+        log.info("Fetching products for sellerId={}", userId);
+
+        return productRepository.findBySellerId(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
 
+    // entity-> dtos
     private ProductResponse mapToResponse(Product product) {
 
         return ProductResponse.builder()

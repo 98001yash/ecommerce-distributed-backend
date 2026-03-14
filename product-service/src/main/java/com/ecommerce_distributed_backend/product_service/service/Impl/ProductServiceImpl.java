@@ -7,10 +7,12 @@ import com.ecommerce_distributed_backend.product_service.dtos.request.UpdateProd
 import com.ecommerce_distributed_backend.product_service.dtos.response.ProductResponse;
 import com.ecommerce_distributed_backend.product_service.entity.Product;
 import com.ecommerce_distributed_backend.product_service.entity.enums.ProductStatus;
+import com.ecommerce_distributed_backend.product_service.exception.ProductNotFoundException;
 import com.ecommerce_distributed_backend.product_service.kafka.ProductEventProducer;
 import com.ecommerce_distributed_backend.product_service.repository.ProductRepository;
 import com.ecommerce_distributed_backend.product_service.service.ProductService;
 import com.redditApp.events.ProductCreatedEvent;
+import com.redditApp.events.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -63,7 +65,41 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse updateProduct(Long productId, UpdateProductRequest request, Long sellerId) {
-        return null;
+
+
+        Long userId = UserContextHolder.getCurrentUserId();
+        log.info("Updating productId:{} by userId: {}",productId, userId);
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(()-> {
+                    log.error("Product not found with id={}",productId);
+                    return new ProductNotFoundException("Product not found");
+                });
+        if (!product.getSellerId().equals(userId)) {
+            log.warn("Unauthorized update attempt for productId={} by userId={}", productId, userId);
+            throw new RuntimeException("You are not allowed to update this product");
+        }
+
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setCategory(request.getCategory());
+
+        Product updatedProduct = productRepository.save(product);
+        log.info("Product updated successfully id={}",productId);
+
+        ProductUpdatedEvent event =
+                ProductUpdatedEvent.builder()
+                        .productId(updatedProduct.getId())
+                        .name(updatedProduct.getName())
+                        .price(updatedProduct.getPrice())
+                        .category(updatedProduct.getCategory())
+                        .build();
+
+        productEventProducer.publishUpdated(event);
+
+        log.info("ProductUpdatedEvent published for productId={}", productId);
+        return mapToResponse(updatedProduct);
     }
 
     @Override

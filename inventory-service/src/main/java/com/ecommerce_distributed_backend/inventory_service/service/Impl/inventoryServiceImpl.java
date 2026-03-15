@@ -8,6 +8,8 @@ import com.ecommerce_distributed_backend.inventory_service.entity.InventoryReser
 import com.ecommerce_distributed_backend.inventory_service.entity.enums.ReservationStatus;
 import com.ecommerce_distributed_backend.inventory_service.exception.InsufficientStockException;
 import com.ecommerce_distributed_backend.inventory_service.exception.InventoryNotFoundException;
+import com.ecommerce_distributed_backend.inventory_service.exception.ReservationAlreadyProcessedException;
+import com.ecommerce_distributed_backend.inventory_service.exception.ReservationNotFoundException;
 import com.ecommerce_distributed_backend.inventory_service.repository.InventoryRepository;
 import com.ecommerce_distributed_backend.inventory_service.repository.InventoryReservationRepository;
 import com.ecommerce_distributed_backend.inventory_service.service.InventoryService;
@@ -84,27 +86,178 @@ public class inventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional
     public void confirmReservation(ConfirmReservationRequest request) {
 
+        Long userId = UserContextHolder.getCurrentUserId();
+
+        log.info("User {} confirming reservation. orderId={}, productId={}",
+                userId,
+                request.getOrderId(),
+                request.getProductId());
+
+        InventoryReservation reservation = reservationRepository
+                .findByOrderIdAndProductId(
+                        request.getOrderId(),
+                        request.getProductId()
+                )
+                .orElseThrow(() ->
+                        new ReservationNotFoundException(
+                                request.getOrderId(),
+                                request.getProductId()
+                        )
+                );
+
+        if (reservation.getStatus() != ReservationStatus.RESERVED) {
+            throw new ReservationAlreadyProcessedException(reservation.getId());
+        }
+
+        Inventory inventory = inventoryRepository
+                .findByProductId(reservation.getProductId())
+                .orElseThrow(() ->
+                        new InventoryNotFoundException(reservation.getProductId())
+                );
+
+        inventory.setReservedQuantity(
+                inventory.getReservedQuantity() - reservation.getQuantity()
+        );
+
+        inventory.setSoldQuantity(
+                inventory.getSoldQuantity() + reservation.getQuantity()
+        );
+
+        inventoryRepository.save(inventory);
+
+        reservation.setStatus(ReservationStatus.CONFIRMED);
+
+        reservationRepository.save(reservation);
+        log.info("Reservation confirmed. orderId={}, productId={}",
+                reservation.getOrderId(),
+                reservation.getProductId());
     }
 
     @Override
+    @Transactional
     public void releaseReservation(ReleaseReservationRequest request) {
 
+        Long userId = UserContextHolder.getCurrentUserId();
+        log.info("User {} releasing reservation. orderId={}, productId={}",
+                userId,
+                request.getOrderId(),
+                request.getProductId());
+
+        InventoryReservation reservation = reservationRepository
+                .findByOrderIdAndProductId(
+                        request.getOrderId(),
+                        request.getProductId()
+                )
+                .orElseThrow(() ->
+                        new ReservationNotFoundException(
+                                request.getOrderId(),
+                                request.getProductId()
+                        )
+                );
+
+        if (reservation.getStatus() != ReservationStatus.RESERVED) {
+            throw new ReservationAlreadyProcessedException(reservation.getId());
+        }
+
+        Inventory inventory = inventoryRepository
+                .findByProductId(reservation.getProductId())
+                .orElseThrow(() ->
+                        new InventoryNotFoundException(reservation.getProductId())
+                );
+
+        inventory.setReservedQuantity(
+                inventory.getReservedQuantity() - reservation.getQuantity()
+        );
+
+        inventory.setAvailableQuantity(
+                inventory.getAvailableQuantity() + reservation.getQuantity()
+        );
+
+        inventoryRepository.save(inventory);
+
+        reservation.setStatus(ReservationStatus.RELEASED);
+        reservationRepository.save(reservation);
+        log.info("Reservation released successfully. orderId={}, productId={}",
+                reservation.getOrderId(),
+                reservation.getProductId());
     }
+
 
     @Override
     public InventoryResponse getInventory(Long productId) {
-        return null;
+
+        Inventory inventory = inventoryRepository
+                .findByProductId(productId)
+                .orElseThrow(() ->
+                        new InventoryNotFoundException(productId)
+                );
+
+        return InventoryResponse.builder()
+                .productId(inventory.getProductId())
+                .availableQuantity(inventory.getAvailableQuantity())
+                .reservedQuantity(inventory.getReservedQuantity())
+                .soldQuantity(inventory.getSoldQuantity())
+                .build();
     }
 
+
     @Override
+    @Transactional
     public void addStock(Long productId, Long warehouseId, Integer quantity) {
 
+        Long userId = UserContextHolder.getCurrentUserId();
+
+        log.info("User {} adding stock. productId={}, quantity={}",
+                userId, productId, quantity);
+
+        Inventory inventory = inventoryRepository
+                .findByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseThrow(() ->
+                        new InventoryNotFoundException(productId)
+                );
+
+        inventory.setAvailableQuantity(
+                inventory.getAvailableQuantity() + quantity
+        );
+
+        inventoryRepository.save(inventory);
+
+        log.info("Stock added successfully. productId={}, newAvailable={}",
+                productId,
+                inventory.getAvailableQuantity());
     }
 
     @Override
+    @Transactional
     public void removeStock(Long productId, Long warehouseId, Integer quantity) {
 
+        Long userId = UserContextHolder.getCurrentUserId();
+
+        log.info("User {} removing stock. productId={}, quantity={}",
+                userId, productId, quantity);
+
+        Inventory inventory = inventoryRepository
+                .findByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseThrow(() ->
+                        new InventoryNotFoundException(productId)
+                );
+
+        if (inventory.getAvailableQuantity() < quantity) {
+
+            throw new InsufficientStockException(productId, quantity);
+        }
+
+        inventory.setAvailableQuantity(
+                inventory.getAvailableQuantity() - quantity
+        );
+
+        inventoryRepository.save(inventory);
+
+        log.info("Stock removed successfully. productId={}, newAvailable={}",
+                productId,
+                inventory.getAvailableQuantity());
     }
 }

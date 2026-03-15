@@ -1,6 +1,5 @@
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\event\CommentCreatedEvent.java
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\event\PostCreatedEvent.java
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\event\PostDeletedEvent.java
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\event\PostUpdatedEvent.java
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\event\PostVotedEvent.java
-E:\projects\RedditApp\reddit-common\src\main\java\com\redditApp\Main.java
+E:\projects\ecommerce-distributed-backend\ecommerce-common-dtos\src\main\java\com\redditApp\BaseEvent.java
+E:\projects\ecommerce-distributed-backend\ecommerce-common-dtos\src\main\java\com\redditApp\enums\ProductStatus.java
+E:\projects\ecommerce-distributed-backend\ecommerce-common-dtos\src\main\java\com\redditApp\events\ProductCreatedEvent.java
+E:\projects\ecommerce-distributed-backend\ecommerce-common-dtos\src\main\java\com\redditApp\events\ProductDeletedEvent.java
+E:\projects\ecommerce-distributed-backend\ecommerce-common-dtos\src\main\java\com\redditApp\events\ProductUpdatedEvent.java

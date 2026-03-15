@@ -18,6 +18,7 @@
         <module>api-gateway</module>
         <module>product-service</module>
         <module>ecommerce-common-dtos</module>
+        <module>inventory-service</module>
     </modules>
 
     <!-- COMMON DEPENDENCY VERSIONS -->

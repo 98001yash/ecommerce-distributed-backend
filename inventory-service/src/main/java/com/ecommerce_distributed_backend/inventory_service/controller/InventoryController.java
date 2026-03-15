@@ -1,5 +1,6 @@
 package com.ecommerce_distributed_backend.inventory_service.controller;
 
+import com.ecommerce_distributed_backend.inventory_service.auth.RoleAllowed;
 import com.ecommerce_distributed_backend.inventory_service.dtos.*;
 import com.ecommerce_distributed_backend.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class InventoryController {
 
     // RESERVE STOCK
     @PostMapping("/reserve")
+    @RoleAllowed("ROLE_ADMIN")
     public ResponseEntity<ReserveStockResponse> reserveStock(
             @RequestBody ReserveStockRequest request) {
 
@@ -34,6 +36,7 @@ public class InventoryController {
     // CONFIRM RESERVATION
 
     @PostMapping("/confirm")
+    @RoleAllowed({"ROLE_ADMIN","ROLE_SELLER","ROLE_CUSTOMER"})
     public ResponseEntity<Void> confirmReservation(
             @RequestBody ConfirmReservationRequest request) {
 
@@ -49,6 +52,7 @@ public class InventoryController {
     // RELEASE RESERVATION
 
     @PostMapping("/release")
+    @RoleAllowed({"ROLE_ADMIN","ROLE_SELLER","ROLE_CUSTOMER"})
     public ResponseEntity<Void> releaseReservation(
             @RequestBody ReleaseReservationRequest request) {
 
@@ -63,6 +67,7 @@ public class InventoryController {
     // GET INVENTORY
 
     @GetMapping("/{productId}")
+    @RoleAllowed({"ROLE_ADMIN","ROLE_SELLER","ROLE_CUSTOMER"})
     public ResponseEntity<InventoryResponse> getInventory(
             @PathVariable Long productId) {
 
@@ -76,6 +81,7 @@ public class InventoryController {
 
     // ADD STOCK
     @PostMapping("/add-stock")
+    @RoleAllowed({"ROLE_ADMIN","ROLE_SELLER","ROLE_CUSTOMER"})
     public ResponseEntity<Void> addStock(
             @RequestParam Long productId,
             @RequestParam Long warehouseId,
@@ -93,6 +99,7 @@ public class InventoryController {
     // REMOVE STOCK
 
     @PostMapping("/remove-stock")
+    @RoleAllowed({"ROLE_ADMIN","ROLE_SELLER","ROLE_CUSTOMER"})
     public ResponseEntity<Void> removeStock(
             @RequestParam Long productId,
             @RequestParam Long warehouseId,

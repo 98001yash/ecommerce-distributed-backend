@@ -3,16 +3,18 @@ package com.ecommerce_distributed_backend.inventory_service.config;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
-import org.springframework.kafka.core.ConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.core.*;
+
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+
 import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
@@ -21,13 +23,14 @@ import java.util.Map;
 @Configuration
 public class KafkaConsumerConfig {
 
+
+    // CONSUMER FACTORY
+
     @Bean
-    public ConsumerFactory<String, Object> consumerFactory() {
+    public ConsumerFactory<String, Object> inventoryConsumerFactory() {
 
         JsonDeserializer<Object> jsonDeserializer = new JsonDeserializer<>();
-
         jsonDeserializer.addTrustedPackages("*");
-        jsonDeserializer.setUseTypeMapperForKey(false);
 
         Map<String, Object> props = new HashMap<>();
 
@@ -46,50 +49,44 @@ public class KafkaConsumerConfig {
         );
     }
 
-    @Bean(name = "kafkaListenerContainerFactory")
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
 
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-
-        factory.setConsumerFactory(consumerFactory());
-
-        // parallel consumption
-        factory.setConcurrency(3);
-
-        // error handling
-        factory.setCommonErrorHandler(new DefaultErrorHandler());
-
-        return factory;
-    }
+    // TEMPLATE FOR DLQ
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> producerFactory) {
+    public KafkaTemplate<String, Object> inventoryKafkaTemplate(
+            ProducerFactory<String, Object> producerFactory
+    ) {
         return new KafkaTemplate<>(producerFactory);
     }
 
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
-            ConsumerFactory<String, Object> consumerFactory,
-            KafkaTemplate<String, Object> kafkaTemplate
+
+    // CONTAINER FACTORY (CUSTOM)
+
+    @Bean(name = "inventoryFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, Object> inventoryFactory(
+            ConsumerFactory<String, Object> inventoryConsumerFactory,
+            KafkaTemplate<String, Object> inventoryKafkaTemplate
     ) {
 
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
 
-        factory.setConsumerFactory(consumerFactory);
+        factory.setConsumerFactory(inventoryConsumerFactory);
 
         factory.setConcurrency(3);
 
-        // DLQ Recoverer
+        // DLQ recoverer
         DeadLetterPublishingRecoverer recoverer =
                 new DeadLetterPublishingRecoverer(
-                        kafkaTemplate,
+                        inventoryKafkaTemplate,
                         (record, ex) ->
-                                new TopicPartition(record.topic() + "-dlq", record.partition())
+                                new TopicPartition(
+                                        record.topic() + "-dlq",
+                                        record.partition()
+                                )
                 );
 
-        // Retry configuration
+        // retry policy
         FixedBackOff backOff = new FixedBackOff(2000L, 3);
 
         DefaultErrorHandler errorHandler =

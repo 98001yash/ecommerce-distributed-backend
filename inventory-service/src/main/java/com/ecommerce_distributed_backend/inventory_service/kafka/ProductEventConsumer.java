@@ -26,7 +26,7 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = "product-created",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "inventoryFactory"
     )
     @Transactional
     public void handleProductCreated(ProductCreatedEvent event) {
@@ -61,7 +61,7 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = "product-updated",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "inventoryFactory"
     )
     public void handleProductUpdated(ProductUpdatedEvent event) {
 
@@ -77,7 +77,7 @@ public class ProductEventConsumer {
 
     @KafkaListener(
             topics = "product-deleted",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "inventoryFactory"
     )
     @Transactional
     public void handleProductDeleted(ProductDeletedEvent event) {

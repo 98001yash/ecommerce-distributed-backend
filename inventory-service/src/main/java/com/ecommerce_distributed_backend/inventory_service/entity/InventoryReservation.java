@@ -36,7 +36,7 @@ public class InventoryReservation {
     private LocalDateTime createdAt;
 
     @Column(name = "expires_at")
-    private LocalDateTime expiredAt;
+    private LocalDateTime expiresAt;
 
     @PrePersist
     public void prePersist(){

@@ -9,7 +9,6 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-
     // FIND BY USER
     List<Order> findByUserId(Long userId);
 
@@ -30,5 +29,4 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     // FETCH LATEST ORDER OF USER
     Optional<Order> findTopByUserIdOrderByCreatedAtDesc(Long userId);
-
 }

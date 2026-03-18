@@ -1,6 +1,7 @@
 package com.ecommerce_distributed_system.order_service.kafka;
 
 import com.ecommerce_distributed_system.order_service.service.OrderService;
+import com.redditApp.events.StockExpiredEvent;
 import com.redditApp.events.StockReleasedEvent;
 import com.redditApp.events.StockReservedEvent;
 import lombok.RequiredArgsConstructor;

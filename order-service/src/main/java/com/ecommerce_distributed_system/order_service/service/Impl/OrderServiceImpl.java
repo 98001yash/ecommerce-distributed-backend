@@ -16,6 +16,7 @@ import com.redditApp.events.StockReservedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -93,8 +94,54 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void handleStockExpired(StockExpiredEvent event) {
 
+        log.info("Processing StockExpiredEvent for orderId={}, productId={}",
+                event.getOrderId(), event.getProductId());
+
+        // 1. FETCH ORDER
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> {
+                    log.error("Order not found for orderId={}", event.getOrderId());
+                    return new OrderNotFoundException("order not found with id:"+event.getOrderId());
+                });
+
+
+        // 2. IDEMPOTENCY CHECK
+        if (order.getStatus() == OrderStatus.INVENTORY_FAILED) {
+
+            log.warn("Duplicate StockExpiredEvent received for orderId={}",
+                    order.getId());
+
+            return; // already processed
+        }
+
+
+        // 3. STATE VALIDATION
+        if (order.getStatus() != OrderStatus.CREATED) {
+
+            log.error("Invalid state transition for orderId={}, currentStatus={}",
+                    order.getId(), order.getStatus());
+
+            throw new InvalidOrderStateException(
+                    "Cannot mark inventory failed for order in state: " + order.getStatus()
+            );
+        }
+
+        // 4. UPDATE ORDER
+        order.setStatus(OrderStatus.INVENTORY_FAILED);
+
+        orderRepository.save(order);
+
+        log.info("Order marked as INVENTORY_FAILED for orderId={}, productId={}",
+                order.getId(),
+                event.getProductId());
+
+
+        // 5. FLOW ENDS HERE
+        log.info("Order flow terminated due to inventory failure for orderId={}",
+                order.getId());
     }
 
     @Override

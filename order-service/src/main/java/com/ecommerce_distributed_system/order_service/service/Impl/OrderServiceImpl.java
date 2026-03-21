@@ -1,5 +1,6 @@
 package com.ecommerce_distributed_system.order_service.service.Impl;
 
+import com.ecommerce_distributed_system.order_service.auth.UserContextHolder;
 import com.ecommerce_distributed_system.order_service.dtos.CreateOrderRequest;
 import com.ecommerce_distributed_system.order_service.dtos.CreateOrderResponse;
 import com.ecommerce_distributed_system.order_service.dtos.OrderResponse;
@@ -28,9 +29,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
 
-    // =========================================================
     // CREATE ORDER
-    // =========================================================
 
     @Override
     @Transactional
@@ -66,9 +65,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-    // =========================================================
     // STOCK RESERVED
-    // =========================================================
 
     @Override
     @Transactional
@@ -105,9 +102,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("Next step: trigger payment for orderId={}", order.getId());
     }
 
-    // =========================================================
     // STOCK RELEASED (CANCEL / ROLLBACK)
-    // =========================================================
 
     @Override
     @Transactional
@@ -143,9 +138,7 @@ public class OrderServiceImpl implements OrderService {
                 order.getId());
     }
 
-    // =========================================================
     // STOCK EXPIRED
-    // =========================================================
 
     @Override
     @Transactional
@@ -180,9 +173,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order marked as INVENTORY_FAILED orderId={}", order.getId());
     }
 
-    // =========================================================
     // CANCEL ORDER (USER ACTION)
-    // =========================================================
 
     @Override
     @Transactional
@@ -210,9 +201,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order cancelled successfully orderId={}", orderId);
     }
 
-    // =========================================================
     // GET ORDER
-    // =========================================================
 
     @Override
     public OrderResponse getOrder(Long orderId) {
@@ -223,9 +212,7 @@ public class OrderServiceImpl implements OrderService {
         return mapToResponse(order);
     }
 
-    // =========================================================
     // GET USER ORDERS
-    // =========================================================
 
     @Override
     public List<OrderResponse> getUserOrders() {
@@ -240,9 +227,8 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
-    // =========================================================
+
     // GET BY STATUS
-    // =========================================================
 
     @Override
     public List<OrderResponse> getOrderByStatus(String status) {
@@ -257,10 +243,7 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
-    // =========================================================
     // MAPPER
-    // =========================================================
-
     private OrderResponse mapToResponse(Order order) {
 
         return OrderResponse.builder()

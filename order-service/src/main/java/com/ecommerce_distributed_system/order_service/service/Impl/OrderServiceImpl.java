@@ -8,11 +8,10 @@ import com.ecommerce_distributed_system.order_service.entity.Order;
 import com.ecommerce_distributed_system.order_service.enums.OrderStatus;
 import com.ecommerce_distributed_system.order_service.exception.InvalidOrderStateException;
 import com.ecommerce_distributed_system.order_service.exception.OrderNotFoundException;
+import com.ecommerce_distributed_system.order_service.kafka.OrderEventProducer;
 import com.ecommerce_distributed_system.order_service.repository.OrderRepository;
 import com.ecommerce_distributed_system.order_service.service.OrderService;
-import com.redditApp.events.StockExpiredEvent;
-import com.redditApp.events.StockReleasedEvent;
-import com.redditApp.events.StockReservedEvent;
+import com.redditApp.events.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -28,9 +28,10 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderEventProducer orderEventProducer;
+
 
     // CREATE ORDER
-
     @Override
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest request) {
@@ -58,6 +59,19 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order created successfully orderId={}, status={}",
                 order.getId(), order.getStatus());
 
+        //  PUBLISH EVENT → ORDER CREATED
+        OrderCreatedEvent event = OrderCreatedEvent.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .productId(order.getProductId())
+                .quantity(order.getQuantity())
+                .createdAt(Instant.now())
+                .build();
+
+        orderEventProducer.sendOrderCreatedEvent(event);
+
+        log.info("OrderCreatedEvent published for orderId={}", order.getId());
+
         return CreateOrderResponse.builder()
                 .orderId(order.getId())
                 .status(order.getStatus().name())
@@ -65,8 +79,8 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-    // STOCK RESERVED
 
+    // STOCK RESERVED
     @Override
     @Transactional
     public void handleStockReserved(StockReservedEvent event) {
@@ -75,10 +89,9 @@ public class OrderServiceImpl implements OrderService {
                 event.getOrderId(), event.getProductId());
 
         Order order = orderRepository.findById(event.getOrderId())
-                .orElseThrow(() -> {
-                    log.error("Order not found for orderId={}", event.getOrderId());
-                    return new OrderNotFoundException("order not found with id:" + event.getOrderId());
-                });
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + event.getOrderId()
+                ));
 
         if (order.getStatus() == OrderStatus.INVENTORY_RESERVED) {
             log.warn("Duplicate StockReservedEvent for orderId={}", order.getId());
@@ -86,9 +99,6 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (order.getStatus() != OrderStatus.CREATED) {
-            log.error("Invalid state transition orderId={}, currentStatus={}",
-                    order.getId(), order.getStatus());
-
             throw new InvalidOrderStateException(
                     "Cannot mark inventory reserved for state: " + order.getStatus()
             );
@@ -99,33 +109,30 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Order updated → INVENTORY_RESERVED orderId={}", order.getId());
 
-        log.info("Next step: trigger payment for orderId={}", order.getId());
+        //  NEXT STEP (COMING SOON)
+        // Trigger Payment Service here
     }
 
-    // STOCK RELEASED (CANCEL / ROLLBACK)
+
+    // STOCK RELEASED
+
 
     @Override
     @Transactional
     public void handleStockReleased(StockReleasedEvent event) {
 
-        log.info("Processing StockReleasedEvent for orderId={}, productId={}",
-                event.getOrderId(), event.getProductId());
+        log.info("Processing StockReleasedEvent for orderId={}", event.getOrderId());
 
         Order order = orderRepository.findById(event.getOrderId())
-                .orElseThrow(() -> {
-                    log.error("Order not found for orderId={}", event.getOrderId());
-                    return new OrderNotFoundException("order not found with id:" + event.getOrderId());
-                });
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + event.getOrderId()
+                ));
 
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            log.warn("Duplicate StockReleasedEvent for orderId={}", order.getId());
             return;
         }
 
         if (order.getStatus() != OrderStatus.INVENTORY_RESERVED) {
-            log.error("Invalid state for release orderId={}, status={}",
-                    order.getId(), order.getStatus());
-
             throw new InvalidOrderStateException(
                     "Cannot release stock for order in state: " + order.getStatus()
             );
@@ -138,30 +145,24 @@ public class OrderServiceImpl implements OrderService {
                 order.getId());
     }
 
-    // STOCK EXPIRED
 
+    // STOCK EXPIRED
     @Override
     @Transactional
     public void handleStockExpired(StockExpiredEvent event) {
 
-        log.info("Processing StockExpiredEvent for orderId={}, productId={}",
-                event.getOrderId(), event.getProductId());
+        log.info("Processing StockExpiredEvent for orderId={}", event.getOrderId());
 
         Order order = orderRepository.findById(event.getOrderId())
-                .orElseThrow(() -> {
-                    log.error("Order not found for orderId={}", event.getOrderId());
-                    return new OrderNotFoundException("order not found with id:" + event.getOrderId());
-                });
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + event.getOrderId()
+                ));
 
         if (order.getStatus() == OrderStatus.INVENTORY_FAILED) {
-            log.warn("Duplicate StockExpiredEvent for orderId={}", order.getId());
             return;
         }
 
         if (order.getStatus() != OrderStatus.CREATED) {
-            log.error("Invalid state transition orderId={}, status={}",
-                    order.getId(), order.getStatus());
-
             throw new InvalidOrderStateException(
                     "Cannot mark inventory failed for state: " + order.getStatus()
             );
@@ -173,8 +174,8 @@ public class OrderServiceImpl implements OrderService {
         log.info("Order marked as INVENTORY_FAILED orderId={}", order.getId());
     }
 
-    // CANCEL ORDER (USER ACTION)
 
+    // CANCEL ORDER
     @Override
     @Transactional
     public void cancelOrder(Long orderId) {
@@ -184,10 +185,11 @@ public class OrderServiceImpl implements OrderService {
         log.info("User {} cancelling orderId={}", userId, orderId);
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("order not found with id:" + orderId));
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + orderId
+                ));
 
         if (order.getStatus() == OrderStatus.CANCELLED) {
-            log.warn("Order already cancelled orderId={}", orderId);
             return;
         }
 
@@ -199,27 +201,39 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         log.info("Order cancelled successfully orderId={}", orderId);
+
+        //  PUBLISH EVENT → ORDER CANCELLED
+        OrderCancelledEvent event = OrderCancelledEvent.builder()
+                .orderId(order.getId())
+                .userId(order.getUserId())
+                .reason("User cancelled order")
+                .cancelledAt(Instant.now())
+                .build();
+
+        orderEventProducer.sendOrderCancelledEvent(event);
+
+        log.info("OrderCancelledEvent published for orderId={}", orderId);
     }
 
-    // GET ORDER
 
+    // GET ORDER
     @Override
     public OrderResponse getOrder(Long orderId) {
 
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderNotFoundException("order not found with id:" + orderId));
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + orderId
+                ));
 
         return mapToResponse(order);
     }
 
-    // GET USER ORDERS
 
+    // GET USER ORDERS
     @Override
     public List<OrderResponse> getUserOrders() {
 
         Long userId = UserContextHolder.getCurrentUserId();
-
-        log.info("Fetching orders for userId={}", userId);
 
         return orderRepository.findByUserId(userId)
                 .stream()
@@ -229,19 +243,17 @@ public class OrderServiceImpl implements OrderService {
 
 
     // GET BY STATUS
-
     @Override
     public List<OrderResponse> getOrderByStatus(String status) {
 
         OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
-
-        log.info("Fetching orders with status={}", orderStatus);
 
         return orderRepository.findByStatus(orderStatus)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
+
 
     // MAPPER
     private OrderResponse mapToResponse(Order order) {

@@ -166,12 +166,20 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public PaymentResponse getPayment(Long paymentId) {
-        return null;
+
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        return mapToResponse(payment);
     }
 
     @Override
     public PaymentResponse getPaymentByOrderId(Long orderId) {
-        return null;
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new PaymentNotFoundException(orderId.toString()));
+
+        return mapToResponse(payment);
     }
 
 

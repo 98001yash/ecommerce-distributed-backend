@@ -4,6 +4,9 @@ import com.ecommerce_distributed_backend.payment_service.dtos.CreatePaymentReque
 import com.ecommerce_distributed_backend.payment_service.dtos.PaymentResponse;
 import com.ecommerce_distributed_backend.payment_service.entities.Payment;
 import com.ecommerce_distributed_backend.payment_service.enums.PaymentStatus;
+import com.ecommerce_distributed_backend.payment_service.exception.InvalidPaymentStateException;
+import com.ecommerce_distributed_backend.payment_service.exception.PaymentNotFoundException;
+import com.ecommerce_distributed_backend.payment_service.exception.PaymentProcessingException;
 import com.ecommerce_distributed_backend.payment_service.repository.PaymentRepository;
 import com.ecommerce_distributed_backend.payment_service.service.PaymentService;
 import com.redditApp.events.StockReservedEvent;
@@ -76,13 +79,43 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
 
         paymentRepository.save(payment);
-
         return mapToResponse(payment);
     }
 
     @Override
+    @Transactional
     public void processPayment(Long paymentId) {
 
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (payment.getStatus() != PaymentStatus.INITIATED) {
+            throw new InvalidPaymentStateException(
+                    "Cannot process payment in state: " + payment.getStatus()
+            );
+        }
+
+        log.info(" Processing payment → paymentId={}", paymentId);
+
+        payment.setStatus(PaymentStatus.PROCESSING);
+        payment.setUpdatedAt(Instant.now());
+        paymentRepository.save(payment);
+
+        try {
+            //  MOCK PAYMENT LOGIC (simulate success/failure)
+            boolean success = simulatePayment();
+
+            if (success) {
+                handlePaymentSuccess(paymentId);
+            } else {
+                handlePaymentFailure(paymentId, "Mock payment failure");
+            }
+
+        } catch (Exception ex) {
+            throw new PaymentProcessingException(
+                    "Error processing payment for paymentId=" + paymentId, ex
+            );
+        }
     }
 
     @Override

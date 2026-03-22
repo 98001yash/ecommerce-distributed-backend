@@ -138,12 +138,30 @@ public class PaymentServiceImpl implements PaymentService {
         log.info(" Payment SUCCESS → paymentId={}, orderId={}",
                 paymentId, payment.getOrderId());
 
-        // 🔥 TODO: Publish PaymentCompletedEvent
+        //  TODO: Publish PaymentCompletedEvent
     }
 
     @Override
+    @Transactional
     public void handlePaymentFailure(Long paymentId, String reason) {
 
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (payment.getStatus() != PaymentStatus.PROCESSING) {
+            throw new InvalidPaymentStateException(
+                    "Cannot mark failure for state: " + payment.getStatus()
+            );
+        }
+
+        payment.setStatus(PaymentStatus.FAILED);
+        payment.setUpdatedAt(Instant.now());
+        paymentRepository.save(payment);
+
+        log.error(" Payment FAILED → paymentId={}, reason={}",
+                paymentId, reason);
+
+        //  TODO: Publish PaymentFailedEvent
     }
 
     @Override

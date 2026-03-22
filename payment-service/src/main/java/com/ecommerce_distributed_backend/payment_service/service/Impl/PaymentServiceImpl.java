@@ -51,16 +51,33 @@ public class PaymentServiceImpl implements PaymentService {
 
         paymentRepository.save(payment);
 
-        log.info("💰 Payment created → paymentId={}, status=INITIATED",
+        log.info(" Payment created → paymentId={}, status=INITIATED",
                 payment.getId());
 
-        // 🔥 Process payment
+        //  Process payment
         processPayment(payment.getId());
     }
 
+
     @Override
+    @Transactional
     public PaymentResponse createPayment(CreatePaymentRequest request) {
-        return null;
+
+        log.info("Creating payment for orderId={}, amount={}",
+                request.getOrderId(), request.getAmount());
+
+        Payment payment = Payment.builder()
+                .orderId(request.getOrderId())
+                .userId(request.getUserId())
+                .amount(request.getAmount())
+                .status(PaymentStatus.INITIATED)
+                .transactionId(UUID.randomUUID().toString())
+                .createdAt(Instant.now())
+                .build();
+
+        paymentRepository.save(payment);
+
+        return mapToResponse(payment);
     }
 
     @Override

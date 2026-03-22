@@ -119,8 +119,26 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public void handlePaymentSuccess(Long paymentId) {
 
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (payment.getStatus() != PaymentStatus.PROCESSING) {
+            throw new InvalidPaymentStateException(
+                    "Cannot mark success for state: " + payment.getStatus()
+            );
+        }
+
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setUpdatedAt(Instant.now());
+        paymentRepository.save(payment);
+
+        log.info(" Payment SUCCESS → paymentId={}, orderId={}",
+                paymentId, payment.getOrderId());
+
+        // 🔥 TODO: Publish PaymentCompletedEvent
     }
 
     @Override

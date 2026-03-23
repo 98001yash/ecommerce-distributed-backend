@@ -2,12 +2,18 @@ package com.ecommerce_distributed_system.order_service.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +25,7 @@ public class KafkaConsumerConfig {
     public ConsumerFactory<String, Object> consumerFactory() {
 
         JsonDeserializer<Object> deserializer = new JsonDeserializer<>();
-        deserializer.addTrustedPackages("*");
+        deserializer.addTrustedPackages("*"); //  important
 
         Map<String, Object> props = new HashMap<>();
 
@@ -45,8 +51,31 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(consumerFactory());
+
+        //  concurrency
         factory.setConcurrency(3);
 
+        //  VERY IMPORTANT: ERROR HANDLER
+        factory.setCommonErrorHandler(errorHandler());
+
         return factory;
+    }
+
+    //  THIS IS THE MISSING PIECE
+    @Bean
+    public DefaultErrorHandler errorHandler() {
+
+        // Retry 3 times with 2 sec gap
+        FixedBackOff backOff = new FixedBackOff(2000L, 3);
+
+        return new DefaultErrorHandler((record, exception) -> {
+
+            // Final failure after retries
+            System.err.println(" Event FAILED after retries: " + record.value());
+            System.err.println(" Exception: " + exception.getMessage());
+
+            //  Future: send to DLQ here
+
+        }, backOff);
     }
 }

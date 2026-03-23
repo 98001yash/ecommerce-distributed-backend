@@ -19,17 +19,18 @@ public class OrderPaymentConsumer {
     //  PAYMENT SUCCESS
     @KafkaListener(
             topics = "payment-completed",
-            groupId = "order-service-group"
+            groupId = "order-service-group",
+            containerFactory = "orderKafkaListenerFactory"
     )
     public void handlePaymentCompleted(PaymentCompletedEvent event) {
 
-        log.info("📥 Received PaymentCompletedEvent → orderId={}",
+        log.info(" Received PaymentCompletedEvent → orderId={}",
                 event.getOrderId());
 
         try {
             orderService.handlePaymentCompleted(event);
         } catch (Exception ex) {
-            log.error("❌ Error processing PaymentCompletedEvent for orderId={}",
+            log.error(" Error processing PaymentCompletedEvent for orderId={}",
                     event.getOrderId(), ex);
             throw ex; // let retry happen
         }
@@ -37,17 +38,18 @@ public class OrderPaymentConsumer {
 
     @KafkaListener(
             topics = "payment-failed",
-            groupId = "order-service-group"
+            groupId = "order-service-group",
+            containerFactory = "orderKafkaListenerFactory"
     )
     public void handlePaymentFailed(PaymentFailedEvent event) {
 
-        log.info("📥 Received PaymentFailedEvent → orderId={}",
+        log.info(" Received PaymentFailedEvent → orderId={}",
                 event.getOrderId());
 
         try {
             orderService.handlePaymentFailed(event);
         } catch (Exception ex) {
-            log.error("❌ Error processing PaymentFailedEvent for orderId={}",
+            log.error("Error processing PaymentFailedEvent for orderId={}",
                     event.getOrderId(), ex);
             throw ex;
         }

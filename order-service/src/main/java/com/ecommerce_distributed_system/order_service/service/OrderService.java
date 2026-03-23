@@ -3,9 +3,7 @@ package com.ecommerce_distributed_system.order_service.service;
 import com.ecommerce_distributed_system.order_service.dtos.CreateOrderRequest;
 import com.ecommerce_distributed_system.order_service.dtos.CreateOrderResponse;
 import com.ecommerce_distributed_system.order_service.dtos.OrderResponse;
-import com.redditApp.events.StockExpiredEvent;
-import com.redditApp.events.StockReleasedEvent;
-import com.redditApp.events.StockReservedEvent;
+import com.redditApp.events.*;
 
 import java.util.List;
 
@@ -24,10 +22,8 @@ public interface OrderService {
     void handleStockExpired(StockExpiredEvent event);
 
 
-
-    // TODO:
-    // void handlePaymentCompleted(PaymentCompletedEvent event);
-    // void handlePaymentFailed(PaymentFailedEvent event);
+     void handlePaymentCompleted(PaymentCompletedEvent event);
+     void handlePaymentFailed(PaymentFailedEvent event);
 
 
     // CANCEL ORDER

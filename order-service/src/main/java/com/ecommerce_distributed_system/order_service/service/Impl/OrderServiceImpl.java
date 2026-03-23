@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -172,6 +173,43 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         log.info("Order marked as INVENTORY_FAILED orderId={}", order.getId());
+    }
+
+    @Override
+    @Transactional
+    public void handlePaymentCompleted(PaymentCompletedEvent event) {
+
+        log.info("Processing paymentCompletedEvent -> orderId={}",event.getOrderId());
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(()->new OrderNotFoundException(
+                        "Order not found with id:" + event.getOrderId()
+                ));
+
+        if(order.getStatus() == OrderStatus.CONFIRMED){
+            log.warn("Duplicate PaymentCompletedEvent for orderId={}",order.getId());
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.INVENTORY_RESERVED) {
+            throw new InvalidOrderStateException(
+                    "Cannot confirm order in state: " + order.getStatus()
+            );
+        }
+
+        order.setStatus(OrderStatus.CONFIRMED);
+        order.setUpdatedAt(LocalDateTime.from(Instant.now()));
+        orderRepository.save(order);
+
+        log.info("✅ Order CONFIRMED → orderId={}", order.getId());
+
+        //  NEXT STEP (IMPORTANT)
+        // TODO: publish InventoryConfirmEvent
+
+    }
+
+    @Override
+    public void handlePaymentFailed(PaymentFailedEvent event) {
+
     }
 
 

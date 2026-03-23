@@ -1,22 +1,21 @@
-
 FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
 COPY pom.xml .
-COPY reddit-common ./reddit-common
+
+# Copy ALL modules (required because of parent pom)
+COPY ecommerce-common-dtos ./ecommerce-common-dtos
 COPY discovery-server ./discovery-server
-COPY notification-service ./notification-service
-COPY post-service ./post-service
-COPY feed-service ./feed-service
 COPY auth-service ./auth-service
-COPY user-service ./user-service
 COPY api-gateway ./api-gateway
-COPY vote-service ./vote-service
-COPY karma-service ./karma-service
-COPY comment-service ./comment-service
+COPY product-service ./product-service
+COPY inventory-service ./inventory-service
+COPY order-service ./order-service
+COPY payment-service ./payment-service
 
 RUN mvn clean package -pl discovery-server -am -DskipTests
+
 
 
 FROM eclipse-temurin:21-jre

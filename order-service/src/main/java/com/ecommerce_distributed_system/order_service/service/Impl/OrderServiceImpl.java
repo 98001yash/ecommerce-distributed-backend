@@ -241,16 +241,16 @@ public class OrderServiceImpl implements OrderService {
 
         //  NEXT STEP (IMPORTANT)
         // event published
-        StockConfirmedEvent event1 = StockConfirmedEvent.builder()
-                .eventId(System.currentTimeMillis())
-                .orderId(order.getId())
-                .productId(order.getProductId())
-                .quantity(order.getQuantity())
-                .warehouseId(1L) // temp (same as inventory)
-                .timestamp(System.currentTimeMillis())
-                .build();
-
-        orderEventProducer.sendStockConfirmEvent(event1);
+//        StockConfirmedEvent event1 = StockConfirmedEvent.builder()
+//                .eventId(System.currentTimeMillis())
+//                .orderId(order.getId())
+//                .productId(order.getProductId())
+//                .quantity(order.getQuantity())
+//                .warehouseId(1L) // temp (same as inventory)
+//                .timestamp(System.currentTimeMillis())
+//                .build();
+//
+//        orderEventProducer.sendStockConfirmEvent(event1);
 
     }
 

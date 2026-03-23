@@ -11,6 +11,7 @@ import com.ecommerce_distributed_backend.payment_service.kafka.PaymentEventProdu
 import com.ecommerce_distributed_backend.payment_service.repository.PaymentRepository;
 import com.ecommerce_distributed_backend.payment_service.service.PaymentService;
 import com.redditApp.events.PaymentCompletedEvent;
+import com.redditApp.events.PaymentFailedEvent;
 import com.redditApp.events.StockReservedEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -173,7 +174,16 @@ public class PaymentServiceImpl implements PaymentService {
         log.error(" Payment FAILED → paymentId={}, reason={}",
                 paymentId, reason);
 
-        //  TODO: Publish PaymentFailedEvent
+        //  PUBLISH EVENT
+        PaymentFailedEvent event = PaymentFailedEvent.builder()
+                .orderId(payment.getOrderId())
+                .paymentId(payment.getId())
+                .userId(payment.getUserId())
+                .reason(reason)
+                .failedAt(Instant.now())
+                .build();
+
+        paymentEventProducer.sendPaymentFailedEvent(event);
     }
 
     @Override

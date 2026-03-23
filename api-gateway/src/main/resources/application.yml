@@ -66,6 +66,20 @@ spring:
 
 
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+
+  endpoint:
+    prometheus:
+      enabled: true
+
+
+
+
 
 eureka:
   client:

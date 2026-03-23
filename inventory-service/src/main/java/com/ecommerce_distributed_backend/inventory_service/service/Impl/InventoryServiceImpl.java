@@ -149,7 +149,12 @@ public class InventoryServiceImpl implements InventoryService {
                 );
 
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
-            throw new ReservationAlreadyProcessedException(reservation.getId());
+
+            log.warn("Reservation already processed. Skipping. reservationId={}, status={}",
+                    reservation.getId(),
+                    reservation.getStatus());
+
+            return; // important
         }
 
         Inventory inventory = inventoryRepository
@@ -218,7 +223,12 @@ public class InventoryServiceImpl implements InventoryService {
                 );
 
         if (reservation.getStatus() != ReservationStatus.RESERVED) {
-            throw new ReservationAlreadyProcessedException(reservation.getId());
+
+            log.warn("Reservation already processed. Skipping. reservationId={}, status={}",
+                    reservation.getId(),
+                    reservation.getStatus());
+
+            return; // important
         }
 
         Inventory inventory = inventoryRepository

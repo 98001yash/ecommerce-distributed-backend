@@ -60,7 +60,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://discovery-server:8761/eureka
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
     register-with-eureka: true
     fetch-registry: true
 
@@ -68,7 +68,7 @@ eureka:
     prefer-ip-address: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:mysupersecurekeyformysafarsaathijwt1234567890abcdefABCDEF1234567890}
 
 logging:
   level:

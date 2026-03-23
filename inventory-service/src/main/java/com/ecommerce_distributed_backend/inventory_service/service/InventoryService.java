@@ -13,12 +13,12 @@ public interface InventoryService {
     /**
      * Confirm reservation after successful payment.
      */
-    void confirmReservation(ConfirmReservationRequest request);
+    void confirmReservation(Long request);
 
     /**
      * Release reserved stock when order is cancelled.
      */
-    void releaseReservation(ReleaseReservationRequest request);
+    void releaseReservation(Long request);
 
     /**
      * Get inventory details for a product.

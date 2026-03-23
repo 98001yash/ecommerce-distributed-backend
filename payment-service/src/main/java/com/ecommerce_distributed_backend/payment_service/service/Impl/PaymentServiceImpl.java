@@ -7,8 +7,10 @@ import com.ecommerce_distributed_backend.payment_service.enums.PaymentStatus;
 import com.ecommerce_distributed_backend.payment_service.exception.InvalidPaymentStateException;
 import com.ecommerce_distributed_backend.payment_service.exception.PaymentNotFoundException;
 import com.ecommerce_distributed_backend.payment_service.exception.PaymentProcessingException;
+import com.ecommerce_distributed_backend.payment_service.kafka.PaymentEventProducer;
 import com.ecommerce_distributed_backend.payment_service.repository.PaymentRepository;
 import com.ecommerce_distributed_backend.payment_service.service.PaymentService;
+import com.redditApp.events.PaymentCompletedEvent;
 import com.redditApp.events.StockReservedEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final PaymentEventProducer paymentEventProducer;
 
 
     @Override
@@ -138,7 +141,16 @@ public class PaymentServiceImpl implements PaymentService {
         log.info(" Payment SUCCESS → paymentId={}, orderId={}",
                 paymentId, payment.getOrderId());
 
-        //  TODO: Publish PaymentCompletedEvent
+        //  PUBLISH EVENT
+        PaymentCompletedEvent event = PaymentCompletedEvent.builder()
+                .orderId(payment.getOrderId())
+                .paymentId(payment.getId())
+                .userId(payment.getUserId())
+                .amount(payment.getAmount().doubleValue())
+                .completedAt(Instant.now())
+                .build();
+
+        paymentEventProducer.sendPaymentCompletedEvent(event);
     }
 
     @Override

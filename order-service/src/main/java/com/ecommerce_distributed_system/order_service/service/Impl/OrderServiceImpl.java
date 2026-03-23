@@ -203,7 +203,16 @@ public class OrderServiceImpl implements OrderService {
         log.info("✅ Order CONFIRMED → orderId={}", order.getId());
 
         //  NEXT STEP (IMPORTANT)
-        // TODO: publish InventoryConfirmEvent
+        StockConfirmedEvent event = StockConfirmedEvent.builder()
+                .eventId(System.currentTimeMillis())
+                .orderId(order.getId())
+                .productId(order.getProductId())
+                .quantity(order.getQuantity())
+                .warehouseId(1L) // temp (same as inventory)
+                .timestamp(System.currentTimeMillis())
+                .build();
+
+        orderEventProducer.sendStockConfirmedEvent(event);
 
     }
 

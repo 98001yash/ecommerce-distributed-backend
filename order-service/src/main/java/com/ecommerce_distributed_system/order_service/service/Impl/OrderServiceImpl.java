@@ -177,6 +177,43 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public void handleStockConfirmed(StockConfirmedEvent event) {
+
+        log.info("Processing StockConfirmedEvent for orderId={}, productId={}",
+                event.getOrderId(), event.getProductId());
+
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> {
+                    log.error("Order not found for orderId={}", event.getOrderId());
+                    return new OrderNotFoundException("Order not found: " + event.getOrderId());
+                });
+
+        // IDEMPOTENCY
+        if (order.getStatus() == OrderStatus.CONFIRMED) {
+            log.warn("Duplicate StockConfirmedEvent for orderId={}", order.getId());
+            return;
+        }
+
+        // VALID STATE
+        if (order.getStatus() != OrderStatus.INVENTORY_RESERVED) {
+            log.error("Invalid state transition for orderId={}, status={}",
+                    order.getId(), order.getStatus());
+
+            throw new InvalidOrderStateException(
+                    "Cannot confirm order in state: " + order.getStatus()
+            );
+        }
+
+        // UPDATE
+        order.setStatus(OrderStatus.CONFIRMED);
+
+        orderRepository.save(order);
+
+        log.info("Order marked as CONFIRMED orderId={}", order.getId());
+    }
+
+    @Override
+    @Transactional
     public void handlePaymentCompleted(PaymentCompletedEvent event) {
 
         log.info("Processing paymentCompletedEvent -> orderId={}",event.getOrderId());
@@ -200,7 +237,7 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(Instant.from(LocalDateTime.from(Instant.now())));
         orderRepository.save(order);
 
-        log.info("✅ Order CONFIRMED → orderId={}", order.getId());
+        log.info(" Order CONFIRMED → orderId={}", order.getId());
 
         //  NEXT STEP (IMPORTANT)
         // event published

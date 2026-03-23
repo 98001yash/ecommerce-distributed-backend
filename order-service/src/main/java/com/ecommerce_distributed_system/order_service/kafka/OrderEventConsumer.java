@@ -1,6 +1,7 @@
 package com.ecommerce_distributed_system.order_service.kafka;
 
 import com.ecommerce_distributed_system.order_service.service.OrderService;
+import com.redditApp.events.StockConfirmedEvent;
 import com.redditApp.events.StockExpiredEvent;
 import com.redditApp.events.StockReleasedEvent;
 import com.redditApp.events.StockReservedEvent;
@@ -54,5 +55,31 @@ public class OrderEventConsumer {
         log.info("Received StockExpiredEvent orderId={}", event.getOrderId());
 
         orderService.handleStockExpired(event);
+    }
+
+    @KafkaListener(
+            topics = "inventory-stock-confirmed",
+            containerFactory = "orderKafkaListenerFactory"
+    )
+    public void handleStockConfirmed(StockConfirmedEvent event) {
+
+        log.info("Received StockConfirmedEvent orderId={}, productId={}",
+                event.getOrderId(),
+                event.getProductId());
+
+        try {
+
+            orderService.handleStockConfirmed(event);
+
+            log.info("Order updated to CONFIRMED for orderId={}",
+                    event.getOrderId());
+
+        } catch (Exception ex) {
+
+            log.error("Error processing StockConfirmedEvent for orderId={}",
+                    event.getOrderId(), ex);
+
+            throw ex; // retry / DLQ
+        }
     }
 }

@@ -21,6 +21,8 @@ public interface OrderService {
     void handleStockReleased(StockReleasedEvent event);
     void handleStockExpired(StockExpiredEvent event);
 
+    void handleStockConfirmed(StockConfirmedEvent event);
+
 
      void handlePaymentCompleted(PaymentCompletedEvent event);
      void handlePaymentFailed(PaymentFailedEvent event);

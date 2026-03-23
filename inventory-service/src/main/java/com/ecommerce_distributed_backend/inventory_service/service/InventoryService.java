@@ -1,6 +1,7 @@
 package com.ecommerce_distributed_backend.inventory_service.service;
 
 import com.ecommerce_distributed_backend.inventory_service.dtos.*;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface InventoryService {
 
@@ -10,15 +11,16 @@ public interface InventoryService {
      */
     ReserveStockResponse reserveStock(ReserveStockRequest request);
 
-    /**
-     * Confirm reservation after successful payment.
-     */
-    void confirmReservation(Long request);
+
+
+    // CONFIRM RESERVATION
+    @Transactional
+    void confirmReservation(ConfirmReservationRequest request);
 
     /**
      * Release reserved stock when order is cancelled.
      */
-    void releaseReservation(Long request);
+    void releaseReservation(ReleaseReservationRequest request);
 
     /**
      * Get inventory details for a product.

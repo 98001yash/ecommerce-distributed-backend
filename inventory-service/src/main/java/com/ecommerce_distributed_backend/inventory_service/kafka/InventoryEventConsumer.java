@@ -1,5 +1,7 @@
 package com.ecommerce_distributed_backend.inventory_service.kafka;
 
+import com.ecommerce_distributed_backend.inventory_service.dtos.ConfirmReservationRequest;
+import com.ecommerce_distributed_backend.inventory_service.dtos.ReleaseReservationRequest;
 import com.ecommerce_distributed_backend.inventory_service.dtos.ReserveStockRequest;
 import com.ecommerce_distributed_backend.inventory_service.service.InventoryService;
 import com.redditApp.events.OrderCreatedEvent;
@@ -57,22 +59,32 @@ public class InventoryEventConsumer {
     )
     public void handleStockConfirmed(StockConfirmedEvent event) {
 
-        log.info(" Received StockConfirmedEvent → orderId={}, productId={}",
+        log.info("Received StockConfirmedEvent → orderId={}, productId={}",
                 event.getOrderId(),
                 event.getProductId()
         );
 
         try {
-            inventoryService.confirmReservation(event.getOrderId());
 
-            log.info(" Stock confirmed (RESERVED → SOLD) for orderId={}",
-                    event.getOrderId());
+            ConfirmReservationRequest request = ConfirmReservationRequest.builder()
+                    .orderId(event.getOrderId())
+                    .productId(event.getProductId())
+                    .build();
+
+            inventoryService.confirmReservation(request);
+
+            log.info("Stock confirmed successfully for orderId={}, productId={}",
+                    event.getOrderId(),
+                    event.getProductId());
 
         } catch (Exception ex) {
-            log.error(" Error confirming stock for orderId={}",
-                    event.getOrderId(), ex);
 
-            throw ex; // retry / DLQ
+            log.error("Error confirming stock for orderId={}, productId={}",
+                    event.getOrderId(),
+                    event.getProductId(),
+                    ex);
+
+            throw ex; // retry + DLQ
         }
     }
 
@@ -83,22 +95,32 @@ public class InventoryEventConsumer {
     )
     public void handleStockReleased(StockReleasedEvent event) {
 
-        log.info(" Received StockReleasedEvent → orderId={}, productId={}",
+        log.info("Received StockReleasedEvent → orderId={}, productId={}",
                 event.getOrderId(),
                 event.getProductId()
         );
 
         try {
-            inventoryService.releaseReservation(event.getOrderId());
 
-            log.info(" Stock released (RESERVED → AVAILABLE) for orderId={}",
-                    event.getOrderId());
+            ReleaseReservationRequest request = ReleaseReservationRequest.builder()
+                    .orderId(event.getOrderId())
+                    .productId(event.getProductId())
+                    .build();
+
+            inventoryService.releaseReservation(request);
+
+            log.info("Stock released successfully for orderId={}, productId={}",
+                    event.getOrderId(),
+                    event.getProductId());
 
         } catch (Exception ex) {
-            log.error(" Error releasing stock for orderId={}",
-                    event.getOrderId(), ex);
 
-            throw ex; // retry / DLQ
+            log.error("Error releasing stock for orderId={}, productId={}",
+                    event.getOrderId(),
+                    event.getProductId(),
+                    ex);
+
+            throw ex; // retry + DLQ
         }
     }
 }

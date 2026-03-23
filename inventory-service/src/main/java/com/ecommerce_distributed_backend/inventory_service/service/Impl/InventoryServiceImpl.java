@@ -127,10 +127,9 @@ public class InventoryServiceImpl implements InventoryService {
 
 
     // CONFIRM RESERVATION
-
     @Override
     @Transactional
-    public void confirmReservation(@org.checkerframework.checker.nullness.qual.MonotonicNonNull Long request) {
+    public void confirmReservation(ConfirmReservationRequest request) {
 
         Long userId = UserContextHolder.getCurrentUserId();
 
@@ -194,11 +193,12 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
 
+
     // RELEASE RESERVATION
 
     @Override
     @Transactional
-    public void releaseReservation(@org.checkerframework.checker.nullness.qual.MonotonicNonNull Long request) {
+    public void releaseReservation(ReleaseReservationRequest request) {
 
         Long userId = UserContextHolder.getCurrentUserId();
 

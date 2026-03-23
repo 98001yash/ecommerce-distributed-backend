@@ -203,7 +203,8 @@ public class OrderServiceImpl implements OrderService {
         log.info("✅ Order CONFIRMED → orderId={}", order.getId());
 
         //  NEXT STEP (IMPORTANT)
-        StockConfirmedEvent event = StockConfirmedEvent.builder()
+        // event published
+        StockConfirmedEvent event1 = StockConfirmedEvent.builder()
                 .eventId(System.currentTimeMillis())
                 .orderId(order.getId())
                 .productId(order.getProductId())
@@ -212,7 +213,7 @@ public class OrderServiceImpl implements OrderService {
                 .timestamp(System.currentTimeMillis())
                 .build();
 
-        orderEventProducer.sendStockConfirmedEvent(event);
+        orderEventProducer.sendStockConfirmEvent(event1);
 
     }
 
@@ -245,7 +246,16 @@ public class OrderServiceImpl implements OrderService {
         log.info("❌ Order CANCELLED due to payment failure → orderId={}", order.getId());
 
         //  NEXT STEP (IMPORTANT)
-        // TODO: publish StockReleaseEvent
+        StockReleasedEvent event1 = StockReleasedEvent.builder()
+                .eventId(System.currentTimeMillis())
+                .orderId(order.getId())
+                .productId(order.getProductId())
+                .quantity(order.getQuantity())
+                .warehouseId(1L)
+                .timestamp(System.currentTimeMillis())
+                .build();
+
+        orderEventProducer.sendStockReleaseEvent(event1);
     }
 
 

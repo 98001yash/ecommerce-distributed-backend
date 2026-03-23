@@ -197,7 +197,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(OrderStatus.CONFIRMED);
-        order.setUpdatedAt(LocalDateTime.from(Instant.now()));
+        order.setUpdatedAt(Instant.from(LocalDateTime.from(Instant.now())));
         orderRepository.save(order);
 
         log.info("✅ Order CONFIRMED → orderId={}", order.getId());
@@ -208,8 +208,35 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public void handlePaymentFailed(PaymentFailedEvent event) {
 
+        log.info("Processing PaymentFailedEvent → orderId={}", event.getOrderId());
+
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> new OrderNotFoundException(
+                        "order not found with id:" + event.getOrderId()
+                ));
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            log.warn("Duplicate PaymentFailedEvent for orderId={}", order.getId());
+            return;
+        }
+
+        if (order.getStatus() != OrderStatus.INVENTORY_RESERVED) {
+            throw new InvalidOrderStateException(
+                    "Cannot cancel order in state: " + order.getStatus()
+            );
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setUpdatedAt(java.time.Instant.now());
+        orderRepository.save(order);
+
+        log.info("❌ Order CANCELLED due to payment failure → orderId={}", order.getId());
+
+        //  NEXT STEP (IMPORTANT)
+        // TODO: publish StockReleaseEvent
     }
 
 
@@ -249,7 +276,6 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderEventProducer.sendOrderCancelledEvent(event);
-
         log.info("OrderCancelledEvent published for orderId={}", orderId);
     }
 

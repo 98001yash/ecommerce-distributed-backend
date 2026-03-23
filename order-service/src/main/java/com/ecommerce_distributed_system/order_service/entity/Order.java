@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -67,5 +68,8 @@ public class Order {
     @PreUpdate
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void setUpdatedAt(Instant now) {
     }
 }

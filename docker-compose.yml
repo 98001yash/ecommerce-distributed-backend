@@ -61,7 +61,7 @@ services:
     ports:
       - "8090:8090"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce_authdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: yash8252
@@ -84,7 +84,7 @@ services:
     ports:
       - "8091:8091"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce_productdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: yash8252
@@ -106,7 +106,7 @@ services:
     ports:
       - "8092:8092"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce_inventorydb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: yash8252
@@ -128,7 +128,7 @@ services:
     ports:
       - "8093:8093"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce_orderdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: yash8252
@@ -150,7 +150,7 @@ services:
     ports:
       - "8094:8094"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce_paymentdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: yash8252
@@ -169,7 +169,7 @@ services:
     ports:
       - "8081:8081"
     environment:
-      SPRING_PROFILES_ACTIVE: docker   # 🔥 FIX
+      SPRING_PROFILES_ACTIVE: docker
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
       JWT_SECRET: mysupersecurekeyformysafarsaathijwt1234567890abcdefABCDEF1234567890
 

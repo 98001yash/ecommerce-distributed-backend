@@ -16,7 +16,8 @@ spec:
 
       volumes:
         - name: kafka-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: kafka-pvc   # ✅ changed
 
       initContainers:
         - name: kafka-init
@@ -25,9 +26,11 @@ spec:
             - sh
             - -c
             - |
-              /opt/kafka/bin/kafka-storage.sh format \
-              -t abcdefghijklmnopqrstuv \
-              -c /opt/kafka/config/kraft/server.properties
+              if [ ! -f /tmp/kraft-combined-logs/meta.properties ]; then
+                /opt/kafka/bin/kafka-storage.sh format \
+                -t abcdefghijklmnopqrstuv \
+                -c /opt/kafka/config/kraft/server.properties
+              fi
           volumeMounts:
             - name: kafka-data
               mountPath: /tmp/kraft-combined-logs

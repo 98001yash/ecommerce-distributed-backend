@@ -17,8 +17,20 @@ spec:
           image: mysql:8
           ports:
             - containerPort: 3306
+
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: yash8252
+
+            # optional (can keep or remove)
             - name: MYSQL_DATABASE
               value: ecommerce_authdb
+
+          volumeMounts:
+            - name: mysql-initdb
+              mountPath: /docker-entrypoint-initdb.d
+
+      volumes:
+        - name: mysql-initdb
+          configMap:
+            name: mysql-init-script

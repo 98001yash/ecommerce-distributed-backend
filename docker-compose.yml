@@ -189,6 +189,20 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
 
+
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    container_name: kafka-exporter
+    ports:
+      - "9308:9308"
+    command:
+      - --kafka.server=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: always
+
 volumes:
   mysql-data:
   grafana-data:

@@ -61,7 +61,6 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
-    //  THIS IS THE MISSING PIECE
     @Bean
     public DefaultErrorHandler errorHandler() {
 

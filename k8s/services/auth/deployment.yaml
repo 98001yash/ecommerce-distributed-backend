@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: ecommerce/auth-service:1.0
+          image: gcr.io/ecommerce-distributed-system/auth-service:1.0
           ports:
             - containerPort: 8090
 

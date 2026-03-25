@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
         - name: discovery-server
-          image: ecommerce/discovery-server:1.0
+          image: gcr.io/ecommerce-distributed-system/discovery-server:1.0
           ports:
             - containerPort: 8761

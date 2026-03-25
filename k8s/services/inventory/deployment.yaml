@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inventory-service
-          image: ecommerce/inventory-service:1.0
+          image: gcr.io/ecommerce-distributed-system/inventory-service:2.0
           ports:
             - containerPort: 8092
 

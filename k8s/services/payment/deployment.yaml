@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: ecommerce/payment-service:1.0
-          imagePullPolicy: Never
+          image: gcr.io/ecommerce-distributed-system/payment-service:1.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 8094
 

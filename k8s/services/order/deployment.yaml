@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: ecommerce/order-service:1.0
-          imagePullPolicy: Never
+          image: gcr.io/ecommerce-distributed-system/order-service:3.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 8093
 
